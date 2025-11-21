@@ -20,5 +20,8 @@ chmod +x linux.sh
 ### Windows
 ```powershell
 .\init-windows.ps1
+```powershell -- si el comando anterior no funciona
+powershell -ExecutionPolicy Bypass -File .\init-windows.ps1
+
 
 
