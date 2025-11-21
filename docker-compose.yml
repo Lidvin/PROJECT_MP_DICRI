@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: mp_dicri_db
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=SoyMP2025!
+    ports:
+      - "1433:1433"
+    restart: unless-stopped
+
+  db_init:
+    image: mcr.microsoft.com/mssql-tools
+    container_name: mp_dicri_db_init
+    depends_on:
+      - db
+    volumes:
+      - ./db/script.sql:/tmp/script.sql
+    command: >
+      sh -c "
+        echo 'Waiting for SQL Server to be ready...' &&
+        sleep 60 &&
+        /opt/mssql-tools/bin/sqlcmd -S mp_dicri_db -U sa -P 'SoyMP2025!' -i /tmp/script.sql &&
+        echo 'Database initialization completed!'
+      "
+    restart: on-failure
+
+  api:
+    build: ./backend
+    container_name: mp_dicri_api
+    depends_on:
+      - db_init
+    environment:
+      - PORT=4000
+      - DB_SERVER=db
+      - DB_USER=sa
+      - DB_PASSWORD=SoyMP2025!
+      - DB_NAME=MP_DICRI
+      - DB_DATABASE=MP_DICRI
+      - DB_PORT=1433
+      - JWT_SECRET=soy_mp_guatemala
+      - JWT_EXPIRES_IN=8h
+    ports:
+      - "4000:4000"
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: mp_dicri_frontend
+    depends_on:
+      - api
+    environment:
+      - VITE_API_BASE_URL=http://localhost:4000
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
